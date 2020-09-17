@@ -1,16 +1,21 @@
-'use strict';
-const util = require('util');
-const qr = require('qr-image');
-const iconv = require('iconv-lite');
-const getPixels = require('get-pixels');
-const { MutableBuffer } = require('mutable-buffer');
-const EventEmitter = require('events');
-const Image = require('./image');
-const utils = require('./utils');
-const _ = require('./commands');
-const Promiseify = require('./promisify');
-const statuses = require('./statuses');
-const {PrinterStatus,OfflineCauseStatus,ErrorCauseStatus,RollPaperSensorStatus} = statuses;
+"use strict";
+const util = require("util");
+const qr = require("qr-image");
+const iconv = require("iconv-lite");
+const getPixels = require("get-pixels");
+const { MutableBuffer } = require("mutable-buffer");
+const EventEmitter = require("events");
+const Image = require("./image");
+const utils = require("./utils");
+const _ = require("./commands");
+const Promiseify = require("./promisify");
+const statuses = require("./statuses");
+const {
+  PrinterStatus,
+  OfflineCauseStatus,
+  ErrorCauseStatus,
+  RollPaperSensorStatus,
+} = statuses;
 
 /**
  * [function ESC/POS Printer]
@@ -26,14 +31,14 @@ function Printer(adapter, options) {
   this.adapter = adapter;
   this.options = options;
   this.buffer = new MutableBuffer();
-  this.encoding = options && options.encoding || 'GB18030';
-  this.width = options && options.width || 48;
+  this.encoding = (options && options.encoding) || "GB18030";
+  this.width = (options && options.width) || 48;
   this._model = null;
-};
+}
 
 Printer.create = function (device) {
   const printer = new Printer(device);
-  return Promise.resolve(Promiseify(printer))
+  return Promise.resolve(Promiseify(printer));
 };
 
 /**
@@ -138,15 +143,12 @@ Printer.prototype.text = function (content, encoding) {
   return this.print(iconv.encode(content + _.EOL, encoding || this.encoding));
 };
 
-
 /**
  * [function Print draw line End Of Line]
 
  * @return {[Printer]} printer  [the escpos printer instance]
  */
 Printer.prototype.drawLine = function () {
-
-
   // this.newLine();
   for (var i = 0; i < this.width; i++) {
     this.buffer.write(Buffer.from("-"));
@@ -156,8 +158,6 @@ Printer.prototype.drawLine = function () {
   return this;
 };
 
-
-
 /**
  * [function Print  table   with End Of Line]
  * @param  {[List]}  data  [mandatory]
@@ -165,28 +165,20 @@ Printer.prototype.drawLine = function () {
  * @return {[Printer]} printer  [the escpos printer instance]
  */
 Printer.prototype.table = function (data, encoding) {
-
-
   var cellWidth = this.width / data.length;
   var lineTxt = "";
 
   for (var i = 0; i < data.length; i++) {
-
     lineTxt += data[i].toString();
 
     var spaces = cellWidth - data[i].toString().length;
     for (var j = 0; j < spaces; j++) {
       lineTxt += " ";
-
     }
-
   }
   this.buffer.write(iconv.encode(lineTxt + _.EOL, encoding || this.encoding));
 
   return this;
-
-
-
 };
 
 /**
@@ -197,134 +189,123 @@ Printer.prototype.table = function (data, encoding) {
  * @return {[Printer]} printer  [the escpos printer instance]
  */
 Printer.prototype.tableCustom = function (data, options = {}) {
-  options = options || { size: [], encoding: this.encoding }
-  let [width = 1, height = 1] = options.size || []
-  let baseWidth = Math.floor(this.width / width)
-  let cellWidth = Math.floor(baseWidth / data.length)
-  let leftoverSpace = baseWidth - cellWidth * data.length
-  let lineStr = ''
-  let secondLineEnabled = false
-  let secondLine = []
+  options = options || { size: [], encoding: this.encoding };
+  let [width = 1, height = 1] = options.size || [];
+  let baseWidth = Math.floor(this.width / width);
+  let cellWidth = Math.floor(baseWidth / data.length);
+  let leftoverSpace = baseWidth - cellWidth * data.length;
+  let lineStr = "";
+  let secondLineEnabled = false;
+  let secondLine = [];
 
   for (let i = 0; i < data.length; i++) {
-    let obj = data[i]
-    let align = (obj.align || '').toUpperCase()
-    let tooLong = false
+    let obj = data[i];
+    let align = (obj.align || "").toUpperCase();
+    let tooLong = false;
 
-    obj.text = obj.text.toString()
-    let textLength = obj.text.length
+    obj.text = obj.text.toString();
+    let textLength = obj.text.length;
 
     if (obj.width) {
-      cellWidth = baseWidth * obj.width
+      cellWidth = baseWidth * obj.width;
     } else if (obj.cols) {
-      cellWidth = obj.cols
+      cellWidth = obj.cols;
     }
 
     if (cellWidth < textLength) {
-      tooLong = true
-      obj.originalText = obj.text
-      obj.text = obj.text.substring(0, cellWidth)
+      tooLong = true;
+      obj.originalText = obj.text;
+      obj.text = obj.text.substring(0, cellWidth);
     }
 
-    if (align === 'CENTER') {
-      let spaces = (cellWidth - textLength) / 2
+    if (align === "CENTER") {
+      let spaces = (cellWidth - textLength) / 2;
       for (let s = 0; s < spaces; s++) {
-        lineStr += ' '
+        lineStr += " ";
       }
 
-      if (obj.text !== '') {
+      if (obj.text !== "") {
         if (obj.style) {
-          lineStr += (
-            this._getStyle(obj.style) +
-            obj.text +
-            this._getStyle("NORMAL")
-          )
+          lineStr +=
+            this._getStyle(obj.style) + obj.text + this._getStyle("NORMAL");
         } else {
-          lineStr += obj.text
+          lineStr += obj.text;
         }
       }
 
       for (let s = 0; s < spaces - 1; s++) {
-        lineStr += ' '
+        lineStr += " ";
       }
-    } else if (align === 'RIGHT') {
-      let spaces = cellWidth - textLength
+    } else if (align === "RIGHT") {
+      let spaces = cellWidth - textLength;
       if (leftoverSpace > 0) {
-        spaces += leftoverSpace
-        leftoverSpace = 0
+        spaces += leftoverSpace;
+        leftoverSpace = 0;
       }
 
       for (let s = 0; s < spaces; s++) {
-        lineStr += ' '
+        lineStr += " ";
       }
 
-      if (obj.text !== '') {
+      if (obj.text !== "") {
         if (obj.style) {
-          lineStr += (
-            this._getStyle(obj.style) +
-            obj.text +
-            this._getStyle("NORMAL")
-          )
+          lineStr +=
+            this._getStyle(obj.style) + obj.text + this._getStyle("NORMAL");
         } else {
-          lineStr += obj.text
+          lineStr += obj.text;
         }
       }
     } else {
-      if (obj.text !== '') {
+      if (obj.text !== "") {
         if (obj.style) {
-          lineStr += (
-            this._getStyle(obj.style) +
-            obj.text +
-            this._getStyle("NORMAL")
-          )
+          lineStr +=
+            this._getStyle(obj.style) + obj.text + this._getStyle("NORMAL");
         } else {
-          lineStr += obj.text
+          lineStr += obj.text;
         }
       }
 
-      let spaces = Math.floor(cellWidth - textLength)
+      let spaces = Math.floor(cellWidth - textLength);
       if (leftoverSpace > 0) {
-        spaces += leftoverSpace
-        leftoverSpace = 0
+        spaces += leftoverSpace;
+        leftoverSpace = 0;
       }
 
       for (let s = 0; s < spaces; s++) {
-        lineStr += ' '
+        lineStr += " ";
       }
     }
 
     if (tooLong) {
-      secondLineEnabled = true
-      obj.text = obj.originalText.substring(cellWidth)
-      secondLine.push(obj)
+      secondLineEnabled = true;
+      obj.text = obj.originalText.substring(cellWidth);
+      secondLine.push(obj);
     } else {
-      obj.text = ''
-      secondLine.push(obj)
+      obj.text = "";
+      secondLine.push(obj);
     }
   }
 
   // Set size to line
   if (width > 1 || height > 1) {
-    lineStr = (
+    lineStr =
       _.TEXT_FORMAT.TXT_CUSTOM_SIZE(width, height) +
       lineStr +
-      _.TEXT_FORMAT.TXT_NORMAL
-    )
+      _.TEXT_FORMAT.TXT_NORMAL;
   }
 
   // Write the line
   this.buffer.write(
     iconv.encode(lineStr + _.EOL, options.encoding || this.encoding)
-  )
+  );
 
   if (secondLineEnabled) {
     // Writes second line if has
-    return this.tableCustom(secondLine, options)
+    return this.tableCustom(secondLine, options);
   } else {
-    return this
+    return this;
   }
-}
-
+};
 
 /**
  * [function Print encoded alpha-numeric text without End Of Line]
@@ -344,7 +325,7 @@ Printer.prototype.pureText = function (content, encoding) {
 Printer.prototype.encode = function (encoding) {
   this.encoding = encoding;
   return this;
-}
+};
 
 /**
  * [line feed]
@@ -352,7 +333,7 @@ Printer.prototype.encode = function (encoding) {
  * @return {[Printer]} printer  [the escpos printer instance]
  */
 Printer.prototype.feed = function (n) {
-  this.buffer.write(new Array(n || 1).fill(_.EOL).join(''));
+  this.buffer.write(new Array(n || 1).fill(_.EOL).join(""));
   return this;
 };
 
@@ -362,9 +343,7 @@ Printer.prototype.feed = function (n) {
  * @return {[Printer]} printer  [the escpos printer instance]
  */
 Printer.prototype.control = function (ctrl) {
-  this.buffer.write(_.FEED_CONTROL_SEQUENCES[
-    'CTL_' + ctrl.toUpperCase()
-  ]);
+  this.buffer.write(_.FEED_CONTROL_SEQUENCES["CTL_" + ctrl.toUpperCase()]);
   return this;
 };
 /**
@@ -373,9 +352,7 @@ Printer.prototype.control = function (ctrl) {
  * @return {[Printer]} printer  [the escpos printer instance]
  */
 Printer.prototype.align = function (align) {
-  this.buffer.write(_.TEXT_FORMAT[
-    'TXT_ALIGN_' + align.toUpperCase()
-  ]);
+  this.buffer.write(_.TEXT_FORMAT["TXT_ALIGN_" + align.toUpperCase()]);
   return this;
 };
 /**
@@ -384,13 +361,10 @@ Printer.prototype.align = function (align) {
  * @return {[Printer]} printer  [the escpos printer instance]
  */
 Printer.prototype.font = function (family) {
-  this.buffer.write(_.TEXT_FORMAT[
-    'TXT_FONT_' + family.toUpperCase()
-  ]);
-  if (family.toUpperCase() === 'A')
-    this.width = this.options && this.options.width || 42;
-  else
-    this.width = this.options && this.options.width || 56;
+  this.buffer.write(_.TEXT_FORMAT["TXT_FONT_" + family.toUpperCase()]);
+  if (family.toUpperCase() === "A")
+    this.width = (this.options && this.options.width) || 42;
+  else this.width = (this.options && this.options.width) || 56;
   return this;
 };
 
@@ -400,74 +374,74 @@ Printer.prototype.font = function (family) {
  * @return {[Printer]} printer  [the escpos printer instance]
  */
 Printer.prototype._getStyle = function (type) {
-  let styled = ''
+  let styled = "";
   switch (type.toUpperCase()) {
-    case 'B':
-      styled += _.TEXT_FORMAT.TXT_BOLD_ON
-      styled += _.TEXT_FORMAT.TXT_ITALIC_OFF
-      styled += _.TEXT_FORMAT.TXT_UNDERL_OFF
-      break
-    case 'I':
-      styled += _.TEXT_FORMAT.TXT_BOLD_OFF
-      styled += _.TEXT_FORMAT.TXT_ITALIC_ON
-      styled += _.TEXT_FORMAT.TXT_UNDERL_OFF
-      break
-    case 'U':
-      styled += _.TEXT_FORMAT.TXT_BOLD_OFF
-      styled += _.TEXT_FORMAT.TXT_ITALIC_OFF
-      styled += _.TEXT_FORMAT.TXT_UNDERL_ON
-      break
-    case 'U2':
-      styled += _.TEXT_FORMAT.TXT_BOLD_OFF
-      styled += _.TEXT_FORMAT.TXT_ITALIC_OFF
-      styled += _.TEXT_FORMAT.TXT_UNDERL2_ON
-      break
+    case "B":
+      styled += _.TEXT_FORMAT.TXT_BOLD_ON;
+      styled += _.TEXT_FORMAT.TXT_ITALIC_OFF;
+      styled += _.TEXT_FORMAT.TXT_UNDERL_OFF;
+      break;
+    case "I":
+      styled += _.TEXT_FORMAT.TXT_BOLD_OFF;
+      styled += _.TEXT_FORMAT.TXT_ITALIC_ON;
+      styled += _.TEXT_FORMAT.TXT_UNDERL_OFF;
+      break;
+    case "U":
+      styled += _.TEXT_FORMAT.TXT_BOLD_OFF;
+      styled += _.TEXT_FORMAT.TXT_ITALIC_OFF;
+      styled += _.TEXT_FORMAT.TXT_UNDERL_ON;
+      break;
+    case "U2":
+      styled += _.TEXT_FORMAT.TXT_BOLD_OFF;
+      styled += _.TEXT_FORMAT.TXT_ITALIC_OFF;
+      styled += _.TEXT_FORMAT.TXT_UNDERL2_ON;
+      break;
 
-    case 'BI':
-      styled += _.TEXT_FORMAT.TXT_BOLD_ON
-      styled += _.TEXT_FORMAT.TXT_ITALIC_ON
-      styled += _.TEXT_FORMAT.TXT_UNDERL_OFF
-      break
-    case 'BIU':
-      styled += _.TEXT_FORMAT.TXT_BOLD_ON
-      styled += _.TEXT_FORMAT.TXT_ITALIC_ON
-      styled += _.TEXT_FORMAT.TXT_UNDERL_ON
-      break
-    case 'BIU2':
-      styled += _.TEXT_FORMAT.TXT_BOLD_ON
-      styled += _.TEXT_FORMAT.TXT_ITALIC_ON
-      styled += _.TEXT_FORMAT.TXT_UNDERL2_ON
-      break
-    case 'BU':
-      styled += _.TEXT_FORMAT.TXT_BOLD_ON
-      styled += _.TEXT_FORMAT.TXT_ITALIC_OFF
-      styled += _.TEXT_FORMAT.TXT_UNDERL_ON
-      break
-    case 'BU2':
-      styled += _.TEXT_FORMAT.TXT_BOLD_ON
-      styled += _.TEXT_FORMAT.TXT_ITALIC_OFF
-      styled += _.TEXT_FORMAT.TXT_UNDERL2_ON
-      break
-    case 'IU':
-      styled += _.TEXT_FORMAT.TXT_BOLD_OFF
-      styled += _.TEXT_FORMAT.TXT_ITALIC_ON
-      styled += _.TEXT_FORMAT.TXT_UNDERL_ON
-      break
-    case 'IU2':
-      styled += _.TEXT_FORMAT.TXT_BOLD_OFF
-      styled += _.TEXT_FORMAT.TXT_ITALIC_ON
-      styled += _.TEXT_FORMAT.TXT_UNDERL2_ON
-      break
+    case "BI":
+      styled += _.TEXT_FORMAT.TXT_BOLD_ON;
+      styled += _.TEXT_FORMAT.TXT_ITALIC_ON;
+      styled += _.TEXT_FORMAT.TXT_UNDERL_OFF;
+      break;
+    case "BIU":
+      styled += _.TEXT_FORMAT.TXT_BOLD_ON;
+      styled += _.TEXT_FORMAT.TXT_ITALIC_ON;
+      styled += _.TEXT_FORMAT.TXT_UNDERL_ON;
+      break;
+    case "BIU2":
+      styled += _.TEXT_FORMAT.TXT_BOLD_ON;
+      styled += _.TEXT_FORMAT.TXT_ITALIC_ON;
+      styled += _.TEXT_FORMAT.TXT_UNDERL2_ON;
+      break;
+    case "BU":
+      styled += _.TEXT_FORMAT.TXT_BOLD_ON;
+      styled += _.TEXT_FORMAT.TXT_ITALIC_OFF;
+      styled += _.TEXT_FORMAT.TXT_UNDERL_ON;
+      break;
+    case "BU2":
+      styled += _.TEXT_FORMAT.TXT_BOLD_ON;
+      styled += _.TEXT_FORMAT.TXT_ITALIC_OFF;
+      styled += _.TEXT_FORMAT.TXT_UNDERL2_ON;
+      break;
+    case "IU":
+      styled += _.TEXT_FORMAT.TXT_BOLD_OFF;
+      styled += _.TEXT_FORMAT.TXT_ITALIC_ON;
+      styled += _.TEXT_FORMAT.TXT_UNDERL_ON;
+      break;
+    case "IU2":
+      styled += _.TEXT_FORMAT.TXT_BOLD_OFF;
+      styled += _.TEXT_FORMAT.TXT_ITALIC_ON;
+      styled += _.TEXT_FORMAT.TXT_UNDERL2_ON;
+      break;
 
-    case 'NORMAL':
+    case "NORMAL":
     default:
-      styled += _.TEXT_FORMAT.TXT_BOLD_OFF
-      styled += _.TEXT_FORMAT.TXT_ITALIC_OFF
-      styled += _.TEXT_FORMAT.TXT_UNDERL_OFF
-      break
+      styled += _.TEXT_FORMAT.TXT_BOLD_OFF;
+      styled += _.TEXT_FORMAT.TXT_ITALIC_OFF;
+      styled += _.TEXT_FORMAT.TXT_UNDERL_OFF;
+      break;
   }
-  return styled
-}
+  return styled;
+};
 
 /**
  * [font style]
@@ -486,7 +460,6 @@ Printer.prototype.style = function (type) {
  * @return {[Printer]} printer  [the escpos printer instance]
  */
 Printer.prototype.size = function (width, height) {
-  
   this.buffer.write(_.TEXT_FORMAT.TXT_CUSTOM_SIZE(width, height));
 
   return this;
@@ -505,7 +478,7 @@ Printer.prototype.spacing = function (n) {
     this.buffer.writeUInt8(n);
   }
   return this;
-}
+};
 
 /**
  * [set line spacing]
@@ -528,7 +501,7 @@ Printer.prototype.lineSpace = function (n) {
  * @return {[Printer]} printer  [the escpos printer instance]
  */
 Printer.prototype.hardware = function (hw) {
-  this.buffer.write(_.HARDWARE['HW_' + hw.toUpperCase()]);
+  this.buffer.write(_.HARDWARE["HW_" + hw.toUpperCase()]);
   return this;
 };
 /**
@@ -543,7 +516,7 @@ Printer.prototype.barcode = function (code, type, options) {
   var width, height, position, font, includeParity;
   // Backward compatibility
   width = arguments[2];
-  if (typeof width === 'string' || typeof width === 'number') {
+  if (typeof width === "string" || typeof width === "number") {
     width = arguments[2];
     height = arguments[3];
     position = arguments[4];
@@ -556,21 +529,23 @@ Printer.prototype.barcode = function (code, type, options) {
     includeParity = options.includeParity !== false; // true by default
   }
 
-  type = type || 'EAN13'; // default type is EAN13, may a good choice ?
-  var convertCode = String(code), parityBit = '', codeLength = '';
-  if (typeof type === 'undefined' || type === null) {
-    throw new TypeError('barcode type is required');
+  type = type || "EAN13"; // default type is EAN13, may a good choice ?
+  var convertCode = String(code),
+    parityBit = "",
+    codeLength = "";
+  if (typeof type === "undefined" || type === null) {
+    throw new TypeError("barcode type is required");
   }
-  if (type === 'EAN13' && convertCode.length !== 12) {
-    throw new Error('EAN13 Barcode type requires code length 12');
+  if (type === "EAN13" && convertCode.length !== 12) {
+    throw new Error("EAN13 Barcode type requires code length 12");
   }
-  if (type === 'EAN8' && convertCode.length !== 7) {
-    throw new Error('EAN8 Barcode type requires code length 7');
+  if (type === "EAN8" && convertCode.length !== 7) {
+    throw new Error("EAN8 Barcode type requires code length 7");
   }
-  if (this._model === 'qsprinter') {
+  if (this._model === "qsprinter") {
     this.buffer.write(_.MODEL.QSPRINTER.BARCODE_MODE.ON);
   }
-  if (this._model === 'qsprinter') {
+  if (this._model === "qsprinter") {
     // qsprinter has no BARCODE_WIDTH command (as of v7.5)
   } else if (width >= 1 && width <= 5) {
     this.buffer.write(_.BARCODE_FORMAT.BARCODE_WIDTH[width]);
@@ -580,35 +555,39 @@ Printer.prototype.barcode = function (code, type, options) {
   if (height >= 1 && height <= 255) {
     this.buffer.write(_.BARCODE_FORMAT.BARCODE_HEIGHT(height));
   } else {
-    if (this._model === 'qsprinter') {
+    if (this._model === "qsprinter") {
       this.buffer.write(_.MODEL.QSPRINTER.BARCODE_HEIGHT_DEFAULT);
     } else {
       this.buffer.write(_.BARCODE_FORMAT.BARCODE_HEIGHT_DEFAULT);
     }
   }
-  if (this._model === 'qsprinter') {
+  if (this._model === "qsprinter") {
     // Qsprinter has no barcode font
   } else {
-    this.buffer.write(_.BARCODE_FORMAT[
-      'BARCODE_FONT_' + (font || 'A').toUpperCase()
-    ]);
+    this.buffer.write(
+      _.BARCODE_FORMAT["BARCODE_FONT_" + (font || "A").toUpperCase()]
+    );
   }
-  this.buffer.write(_.BARCODE_FORMAT[
-    'BARCODE_TXT_' + (position || 'BLW').toUpperCase()
-  ]);
-  this.buffer.write(_.BARCODE_FORMAT[
-    'BARCODE_' + ((type || 'EAN13').replace('-', '_').toUpperCase())
-  ]);
+  this.buffer.write(
+    _.BARCODE_FORMAT["BARCODE_TXT_" + (position || "BLW").toUpperCase()]
+  );
+  this.buffer.write(
+    _.BARCODE_FORMAT[
+      "BARCODE_" + (type || "EAN13").replace("-", "_").toUpperCase()
+    ]
+  );
   if (includeParity) {
-    if (type === 'EAN13' || type === 'EAN8') {
+    if (type === "EAN13" || type === "EAN8") {
       parityBit = utils.getParityBit(code);
     }
   }
-  if (type == 'CODE128' || type == 'CODE93') {
+  if (type == "CODE128" || type == "CODE93") {
     codeLength = utils.codeLength(code);
   }
-  this.buffer.write(codeLength + code + (includeParity ? parityBit : '') + '\x00'); // Allow to skip the parity byte
-  if (this._model === 'qsprinter') {
+  this.buffer.write(
+    codeLength + code + (includeParity ? parityBit : "") + "\x00"
+  ); // Allow to skip the parity byte
+  if (this._model === "qsprinter") {
     this.buffer.write(_.MODEL.QSPRINTER.BARCODE_MODE.OFF);
   }
   return this;
@@ -623,24 +602,26 @@ Printer.prototype.barcode = function (code, type, options) {
  * @return {[Printer]} printer  [the escpos printer instance]
  */
 Printer.prototype.qrcode = function (code, version, level, size) {
-  if (this._model !== 'qsprinter') {
+  if (this._model !== "qsprinter") {
     this.buffer.write(_.CODE2D_FORMAT.TYPE_QR);
     this.buffer.write(_.CODE2D_FORMAT.CODE2D);
     this.buffer.writeUInt8(version || 3);
-    this.buffer.write(_.CODE2D_FORMAT[
-      'QR_LEVEL_' + (level || 'L').toUpperCase()
-    ]);
+    this.buffer.write(
+      _.CODE2D_FORMAT["QR_LEVEL_" + (level || "L").toUpperCase()]
+    );
     this.buffer.writeUInt8(size || 6);
     this.buffer.writeUInt16LE(code.length);
     this.buffer.write(code);
   } else {
-    const dataRaw = iconv.encode(code, 'utf8');
+    const dataRaw = iconv.encode(code, "utf8");
     if (dataRaw.length < 1 && dataRaw.length > 2710) {
-      throw new Error('Invalid code length in byte. Must be between 1 and 2710');
+      throw new Error(
+        "Invalid code length in byte. Must be between 1 and 2710"
+      );
     }
 
     // Set pixel size
-    if (!size || (size && typeof size !== 'number'))
+    if (!size || (size && typeof size !== "number"))
       size = _.MODEL.QSPRINTER.CODE2D_FORMAT.PIXEL_SIZE.DEFAULT;
     else if (size && size < _.MODEL.QSPRINTER.CODE2D_FORMAT.PIXEL_SIZE.MIN)
       size = _.MODEL.QSPRINTER.CODE2D_FORMAT.PIXEL_SIZE.MIN;
@@ -650,7 +631,7 @@ Printer.prototype.qrcode = function (code, version, level, size) {
     this.buffer.writeUInt8(size);
 
     // Set version
-    if (!version || (version && typeof version !== 'number'))
+    if (!version || (version && typeof version !== "number"))
       version = _.MODEL.QSPRINTER.CODE2D_FORMAT.VERSION.DEFAULT;
     else if (version && version < _.MODEL.QSPRINTER.CODE2D_FORMAT.VERSION.MIN)
       version = _.MODEL.QSPRINTER.CODE2D_FORMAT.VERSION.MIN;
@@ -660,20 +641,26 @@ Printer.prototype.qrcode = function (code, version, level, size) {
     this.buffer.writeUInt8(version);
 
     // Set level
-    if (!level || (level && typeof level !== 'string'))
+    if (!level || (level && typeof level !== "string"))
       level = _.CODE2D_FORMAT.QR_LEVEL_L;
     this.buffer.write(_.MODEL.QSPRINTER.CODE2D_FORMAT.LEVEL.CMD);
-    this.buffer.write(_.MODEL.QSPRINTER.CODE2D_FORMAT.LEVEL.OPTIONS[level.toUpperCase()]);
+    this.buffer.write(
+      _.MODEL.QSPRINTER.CODE2D_FORMAT.LEVEL.OPTIONS[level.toUpperCase()]
+    );
 
     // Transfer data(code) to buffer
     this.buffer.write(_.MODEL.QSPRINTER.CODE2D_FORMAT.SAVEBUF.CMD_P1);
-    this.buffer.writeUInt16LE(dataRaw.length + _.MODEL.QSPRINTER.CODE2D_FORMAT.LEN_OFFSET);
+    this.buffer.writeUInt16LE(
+      dataRaw.length + _.MODEL.QSPRINTER.CODE2D_FORMAT.LEN_OFFSET
+    );
     this.buffer.write(_.MODEL.QSPRINTER.CODE2D_FORMAT.SAVEBUF.CMD_P2);
     this.buffer.write(dataRaw);
 
     // Print from buffer
     this.buffer.write(_.MODEL.QSPRINTER.CODE2D_FORMAT.PRINTBUF.CMD_P1);
-    this.buffer.writeUInt16LE(dataRaw.length + _.MODEL.QSPRINTER.CODE2D_FORMAT.LEN_OFFSET);
+    this.buffer.writeUInt16LE(
+      dataRaw.length + _.MODEL.QSPRINTER.CODE2D_FORMAT.LEN_OFFSET
+    );
     this.buffer.write(_.MODEL.QSPRINTER.CODE2D_FORMAT.PRINTBUF.CMD_P2);
   }
   return this;
@@ -688,13 +675,13 @@ Printer.prototype.qrcode = function (code, version, level, size) {
  */
 Printer.prototype.qrimage = function (content, options, callback) {
   var self = this;
-  if (typeof options == 'function') {
+  if (typeof options == "function") {
     callback = options;
     options = null;
   }
-  options = options || { type: 'png', mode: 'dhdw' };
+  options = options || { type: "png", mode: "dhdw" };
   var buffer = qr.imageSync(content, options);
-  var type = ['image', options.type].join('/');
+  var type = ["image", options.type].join("/");
   getPixels(buffer, type, function (err, pixels) {
     if (err) return callback && callback(err);
     self.raster(new Image(pixels), options.mode);
@@ -711,10 +698,10 @@ Printer.prototype.qrimage = function (content, options, callback) {
  */
 Printer.prototype.image = async function (image, density) {
   if (!(image instanceof Image))
-    throw new TypeError('Only escpos.Image supported');
-  density = density || 'd24';
-  var n = !!~['d8', 's8'].indexOf(density) ? 1 : 3;
-  var header = _.BITMAP_FORMAT['BITMAP_' + density.toUpperCase()];
+    throw new TypeError("Only escpos.Image supported");
+  density = density || "d24";
+  var n = !!~["d8", "s8"].indexOf(density) ? 1 : 3;
+  var header = _.BITMAP_FORMAT["BITMAP_" + density.toUpperCase()];
   var bitmap = image.toBitmap(n * 8);
   var self = this;
 
@@ -727,7 +714,9 @@ Printer.prototype.image = async function (image, density) {
     self.buffer.write(line);
     self.buffer.write(_.EOL);
     await new Promise((resolve, reject) => {
-      setTimeout(() => { resolve(true) }, 200);
+      setTimeout(() => {
+        resolve(true);
+      }, 200);
     });
   });
   return this.lineSpace();
@@ -741,13 +730,11 @@ Printer.prototype.image = async function (image, density) {
  */
 Printer.prototype.raster = function (image, mode) {
   if (!(image instanceof Image))
-    throw new TypeError('Only escpos.Image supported');
-  mode = mode || 'normal';
-  if (mode === 'dhdw' ||
-    mode === 'dwh' ||
-    mode === 'dhw') mode = 'dwdh';
+    throw new TypeError("Only escpos.Image supported");
+  mode = mode || "normal";
+  if (mode === "dhdw" || mode === "dwh" || mode === "dhw") mode = "dwdh";
   var raster = image.toRaster();
-  var header = _.GSV0_FORMAT['GSV0_' + mode.toUpperCase()];
+  var header = _.GSV0_FORMAT["GSV0_" + mode.toUpperCase()];
   this.buffer.write(header);
   this.buffer.writeUInt16LE(raster.width);
   this.buffer.writeUInt16LE(raster.height);
@@ -761,9 +748,7 @@ Printer.prototype.raster = function (image, mode) {
  * @return {[Printer]} printer  [the escpos printer instance]
  */
 Printer.prototype.cashdraw = function (pin) {
-  this.buffer.write(_.CASH_DRAWER[
-    'CD_KICK_' + (pin || 2)
-  ]);
+  this.buffer.write(_.CASH_DRAWER["CD_KICK_" + (pin || 2)]);
   return this;
 };
 
@@ -797,9 +782,7 @@ Printer.prototype.flush = function (callback) {
  */
 Printer.prototype.cut = function (part, feed) {
   this.feed(feed || 3);
-  this.buffer.write(_.PAPER[
-    part ? 'PAPER_PART_CUT' : 'PAPER_FULL_CUT'
-  ]);
+  this.buffer.write(_.PAPER[part ? "PAPER_PART_CUT" : "PAPER_FULL_CUT"]);
   return this;
 };
 
@@ -822,9 +805,7 @@ Printer.prototype.close = function (callback, options) {
  * @return {[Printer]} printer  [the escpos printer instance]
  */
 Printer.prototype.color = function (color) {
-  this.buffer.write(_.COLOR[
-    color === 0 || color === 1 ? color : 0
-  ]);
+  this.buffer.write(_.COLOR[color === 0 || color === 1 ? color : 0]);
   return this;
 };
 
@@ -837,7 +818,6 @@ Printer.prototype.setReverseColors = function (bool) {
   this.buffer.write(bool ? _.COLOR.REVERSE : _.COLOR.UNREVERSE);
   return this;
 };
-
 
 /**
  * [writes a low level command to the printer buffer]
@@ -853,13 +833,12 @@ Printer.prototype.setReverseColors = function (bool) {
 Printer.prototype.raw = function raw(data) {
   if (Buffer.isBuffer(data)) {
     this.buffer.write(data);
-  } else if (typeof data === 'string') {
+  } else if (typeof data === "string") {
     data = data.toLowerCase();
-    this.buffer.write(Buffer.from(data.replace(/(\s|:)/g, ''), 'hex'));
+    this.buffer.write(Buffer.from(data.replace(/(\s|:)/g, ""), "hex"));
   }
   return this;
 };
-
 
 /**
  * get one specific status from the printer
@@ -867,31 +846,30 @@ Printer.prototype.raw = function raw(data) {
  * @param  {Function} callback
  * @return {Printer}
  */
-Printer.prototype.getStatus = function(statusClassName, callback) {
-  this.adapter.read(data => {
+Printer.prototype.getStatus = function (statusClassName, callback) {
+  this.adapter.read((data) => {
     const byte = data.readInt8(0);
 
     const status = new statuses[statusClassName](byte);
 
     callback(status);
-  })
+  });
 
   statuses[statusClassName].commands().forEach((c) => {
     this.buffer.write(c);
   });
 
   return this;
-}
-
+};
 
 /**
  * get statuses from the printer
  * @param  {Function} callback
  * @return {Printer}
  */
-Printer.prototype.getStatuses = function(callback) {
+Printer.prototype.getStatuses = function (callback) {
   let buffer = [];
-  this.adapter.read(data => {
+  this.adapter.read((data) => {
     for (let i = 0; i < data.byteLength; i++) {
       buffer.push(data.readInt8(i));
     }
@@ -913,7 +891,7 @@ Printer.prototype.getStatuses = function(callback) {
         case 2:
           statuses.push(new OfflineCauseStatus(byte));
           break;
-        case 3  :
+        case 3:
           statuses.push(new ErrorCauseStatus(byte));
           break;
       }
@@ -921,7 +899,7 @@ Printer.prototype.getStatuses = function(callback) {
 
     buffer = [];
     callback(statuses);
-  })
+  });
 
   PrinterStatus.commands().forEach((c) => {
     this.adapter.write(c);
@@ -940,16 +918,15 @@ Printer.prototype.getStatuses = function(callback) {
   });
 
   return this;
-}
-
+};
 
 /**
  * Printer Supports
  */
 Printer.Printer = Printer;
-Printer.Image = require('./image');
-Printer.command = require('./commands');
-Printer.Printer2 = require('./promisify');
+Printer.Image = require("./image");
+Printer.command = require("./commands");
+Printer.Printer2 = require("./promisify");
 
 /**
  * [exports description]

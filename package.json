@@ -1,6 +1,11 @@
 {
   "name": "root",
-  "private": true,
+  "secripts": {
+    "p": "lerna publish",
+    "bs": "lerna bootstrap",
+    "toES6": "cjs-to-es6 ./packages/",
+    "fmt": "prettier --write './packages/**/*.js'"
+  },
   "devDependencies": {
     "lerna": "^3.20.2"
   }

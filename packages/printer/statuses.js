@@ -1,13 +1,8 @@
-const _ = require('./commands')
+const _ = require("./commands");
 
-class NotImplementedException extends Error {
-}
+class NotImplementedException extends Error {}
 
 class DeviceStatus {
-  byte = '';
-  bits = [];
-  bitsAsc = [];
-
   constructor(byte) {
     this.byte = byte;
     for (let j = 7; j >= 0; j--) {
@@ -20,7 +15,7 @@ class DeviceStatus {
   }
 
   getBits() {
-    return this.bits.join('');
+    return this.bits.join("");
   }
 
   static commands() {
@@ -36,7 +31,7 @@ class DeviceStatus {
       className: this.constructor.getClassName(),
       byte: this.byte,
       bits: this.getBits(),
-      statuses: []
+      statuses: [],
     };
   }
 }
@@ -47,47 +42,47 @@ class PrinterStatus extends DeviceStatus {
   }
 
   static getClassName() {
-    return 'PrinterStatus';
+    return "PrinterStatus";
   }
 
   toJSON() {
     let result = super.toJSON();
     for (let i = 0; i < 8; i++) {
-      let label = '';
-      let status = 'ok';
+      let label = "";
+      let status = "ok";
       switch (i) {
         case 2:
           if (this.bitsAsc[i] === 1) {
-            label = 'Drawer kick-out connector pin 3 is HIGH';
+            label = "Drawer kick-out connector pin 3 is HIGH";
           } else {
-            label = 'Drawer kick-out connector pin 3 is LOW';
+            label = "Drawer kick-out connector pin 3 is LOW";
           }
           break;
         case 3:
           if (this.bitsAsc[i] === 1) {
-            status = 'error'
-            label = 'Offline';
+            status = "error";
+            label = "Offline";
           } else {
-            label = 'Online';
+            label = "Online";
           }
           break;
         case 5:
           if (this.bitsAsc[i] === 1) {
-            status = 'error';
-            label = 'Waiting for online recovery';
+            status = "error";
+            label = "Waiting for online recovery";
           } else {
-            label = 'Not waiting for online recovery';
+            label = "Not waiting for online recovery";
           }
           break;
         case 6:
           if (this.bitsAsc[i] === 1) {
-            label = 'Paper feed button is being pressed';
+            label = "Paper feed button is being pressed";
           } else {
-            label = 'Paper feed button is not being pressed';
+            label = "Paper feed button is not being pressed";
           }
           break;
         default:
-          label = 'Fixed';
+          label = "Fixed";
           break;
       }
 
@@ -95,7 +90,7 @@ class PrinterStatus extends DeviceStatus {
         bit: i,
         value: this.bitsAsc[i],
         label: label,
-        status: status
+        status: status,
       });
     }
 
@@ -109,49 +104,49 @@ class OfflineCauseStatus extends DeviceStatus {
   }
 
   static getClassName() {
-    return 'OfflineCauseStatus';
+    return "OfflineCauseStatus";
   }
 
   toJSON() {
     let result = super.toJSON();
     for (let i = 0; i < 8; i++) {
-      let label = '';
-      let status = 'ok';
+      let label = "";
+      let status = "ok";
       switch (i) {
         case 2:
           if (this.bitsAsc[i] === 1) {
-            status = 'error';
-            label = 'Cover is open';
+            status = "error";
+            label = "Cover is open";
           } else {
-            label = 'Cover is closed';
+            label = "Cover is closed";
           }
           break;
         case 3:
           if (this.bitsAsc[i] === 1) {
-            status = 'error';
-            label = 'Paper is being fed by the paper feed button';
+            status = "error";
+            label = "Paper is being fed by the paper feed button";
           } else {
-            label = 'Paper is not being fed by the paper feed button';
+            label = "Paper is not being fed by the paper feed button";
           }
           break;
         case 5:
           if (this.bitsAsc[i] === 1) {
-            status = 'error';
-            label = 'Printing stops due to a paper-end';
+            status = "error";
+            label = "Printing stops due to a paper-end";
           } else {
-            label = 'No paper-end stop';
+            label = "No paper-end stop";
           }
           break;
         case 6:
           if (this.bitsAsc[i] === 1) {
-            status = 'error';
-            label = 'Error occurred';
+            status = "error";
+            label = "Error occurred";
           } else {
-            label = 'No error';
+            label = "No error";
           }
           break;
         default:
-          label = 'Fixed';
+          label = "Fixed";
           break;
       }
 
@@ -159,7 +154,7 @@ class OfflineCauseStatus extends DeviceStatus {
         bit: i,
         value: this.bitsAsc[i],
         label: label,
-        status: status
+        status: status,
       });
     }
 
@@ -173,49 +168,49 @@ class ErrorCauseStatus extends DeviceStatus {
   }
 
   static getClassName() {
-    return 'ErrorCauseStatus';
+    return "ErrorCauseStatus";
   }
 
   toJSON() {
     let result = super.toJSON();
     for (let i = 0; i < 8; i++) {
-      let label = '';
-      let status = 'ok';
+      let label = "";
+      let status = "ok";
       switch (i) {
         case 2:
           if (this.bitsAsc[i] === 1) {
-            status = 'error';
-            label = 'Recoverable error occurred';
+            status = "error";
+            label = "Recoverable error occurred";
           } else {
-            label = 'No recoverable error';
+            label = "No recoverable error";
           }
           break;
         case 3:
           if (this.bitsAsc[i] === 1) {
-            status = 'error';
-            label = 'Autocutter error occurred';
+            status = "error";
+            label = "Autocutter error occurred";
           } else {
-            label = 'No autocutter error';
+            label = "No autocutter error";
           }
           break;
         case 5:
           if (this.bitsAsc[i] === 1) {
-            status = 'error';
-            label = 'Unrecoverable error occurred';
+            status = "error";
+            label = "Unrecoverable error occurred";
           } else {
-            label = 'No unrecoverable error';
+            label = "No unrecoverable error";
           }
           break;
         case 6:
           if (this.bitsAsc[i] === 1) {
-            status = 'error';
-            label = 'Auto-recoverable error occurred';
+            status = "error";
+            label = "Auto-recoverable error occurred";
           } else {
-            label = 'No auto-recoverable error';
+            label = "No auto-recoverable error";
           }
           break;
         default:
-          label = 'Fixed';
+          label = "Fixed";
           break;
       }
 
@@ -223,7 +218,7 @@ class ErrorCauseStatus extends DeviceStatus {
         bit: i,
         value: this.bitsAsc[i],
         label: label,
-        status: status
+        status: status,
       });
     }
 
@@ -237,7 +232,7 @@ class RollPaperSensorStatus extends DeviceStatus {
   }
 
   static getClassName() {
-    return 'RollPaperSensorStatus';
+    return "RollPaperSensorStatus";
   }
 
   toJSON() {
@@ -247,56 +242,56 @@ class RollPaperSensorStatus extends DeviceStatus {
       result.statuses.push({
         bit: i,
         value: this.bitsAsc[i],
-        label: 'Fixed',
-        status: 'ok'
+        label: "Fixed",
+        status: "ok",
       });
     }
 
-    let label = '';
-    let status = 'ok';
+    let label = "";
+    let status = "ok";
     if (this.bitsAsc[2] === 1 && this.bitsAsc[3] === 1) {
-      status = 'warning';
-      label = 'Roll paper near-end sensor: paper near-end';
+      status = "warning";
+      label = "Roll paper near-end sensor: paper near-end";
     } else if (this.bitsAsc[2] === 0 && this.bitsAsc[3] === 0) {
-      label = 'Roll paper near-end sensor: paper adequate';
+      label = "Roll paper near-end sensor: paper adequate";
     }
 
     result.statuses.push({
-      bit: '2,3',
+      bit: "2,3",
       value: "" + this.bitsAsc[2] + this.bitsAsc[3],
       label: label,
-      status: status
+      status: status,
     });
 
     result.statuses.push({
       bit: 4,
       value: this.bitsAsc[4],
-      label: 'Fixed',
-      status: 'ok'
+      label: "Fixed",
+      status: "ok",
     });
 
-    label = '';
-    status = 'ok';
+    label = "";
+    status = "ok";
     if (this.bitsAsc[5] === 1 && this.bitsAsc[6] === 1) {
-      status = 'error';
-      label = 'Roll paper end sensor: paper not present';
+      status = "error";
+      label = "Roll paper end sensor: paper not present";
     } else if (this.bitsAsc[5] === 0 && this.bitsAsc[6] === 0) {
-      label = 'Roll paper end sensor: paper present';
+      label = "Roll paper end sensor: paper present";
     }
 
     result.statuses.push({
-      bit: '5,6',
+      bit: "5,6",
       value: "" + this.bitsAsc[5] + this.bitsAsc[6],
       label: label,
-      status: status
+      status: status,
     });
 
     for (let i = 7; i <= 8; i++) {
       result.statuses.push({
         bit: i,
         value: this.bitsAsc[i],
-        label: 'Fixed',
-        status: 'ok'
+        label: "Fixed",
+        status: "ok",
       });
     }
 
